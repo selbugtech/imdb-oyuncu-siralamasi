@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oyuncu Sıralaması</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f4ef; --panel: #ffffff; --ink: #1c1b19; --muted: #6b675f; --line: #e4e0d6;
+  --accent: #c8901a; --accent-ink: #1c1b19; --accent-soft: #f5e7c4; --row-hover: #faf7f0;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.04);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211; --panel: #1b1a18; --ink: #ece9e2; --muted: #9a958a; --line: #2d2b27;
+    --accent: #f0b429; --accent-ink: #121211; --accent-soft: #3a2f16; --row-hover: #22211e;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121211; --panel: #1b1a18; --ink: #ece9e2; --muted: #9a958a; --line: #2d2b27;
+  --accent: #f0b429; --accent-ink: #121211; --accent-soft: #3a2f16; --row-hover: #22211e;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 Inter, system-ui, sans-serif; }
+a { color: inherit; }
+header { max-width: 1240px; margin: 0 auto; padding: 28px 16px 8px; display: flex; gap: 16px; align-items: end; justify-content: space-between; flex-wrap: wrap; }
+h1 { font-family: Fraunces, Georgia, serif; font-size: 34px; margin: 0; letter-spacing: -.01em; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 270px 1fr; gap: 20px; align-items: start; }
+@media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+aside.card { padding: 18px; position: sticky; top: 16px; }
+@media (max-width: 860px) { aside.card { position: static; } }
+.field { margin-bottom: 16px; }
+.field > label, .field > .lbl { display: block; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
+input[type=text], input[type=number], select {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--bg); color: var(--ink); padding: 5px 10px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 13px; }
+.chip[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.toolbar { display: flex; gap: 10px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.toolbar input { flex: 1 1 200px; }
+.toolbar select { width: auto; }
+.status { padding: 10px 16px; color: var(--muted); font-size: 13px; border-bottom: 1px solid var(--line); }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; text-align: right; white-space: nowrap; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; border-bottom: 1px solid var(--line); }
+th.active { color: var(--accent); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+td { border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--row-hover); }
+.rank { font-family: Fraunces, Georgia, serif; font-weight: 700; color: var(--muted); width: 48px; }
+tr:nth-child(-n+3) .rank { color: var(--accent); font-size: 17px; }
+.name { font-weight: 600; }
+.name small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.bar { display: inline-flex; align-items: center; gap: 8px; }
+.bar i { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); }
+.more { display: block; margin: 16px auto; }
+button.btn { background: var(--accent); color: var(--accent-ink); border: 0; padding: 9px 16px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+button.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 12px; border-radius: 8px; font: inherit; cursor: pointer; }
+.empty { padding: 48px 16px; text-align: center; color: var(--muted); }
+dialog { border: 0; padding: 0; width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); border-radius: 16px; background: var(--panel); color: var(--ink); }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.dlg-head { padding: 20px 20px 12px; display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+.dlg-head h2 { font-family: Fraunces, Georgia, serif; margin: 0; font-size: 24px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 20px; }
+@media (max-width: 560px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+.stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.films td { text-align: left; white-space: normal; }
+.films td.num { text-align: right; white-space: nowrap; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); margin-left: 4px; }
+.err { color: #c0392b; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Oyuncu <span>Sıralaması</span></h1>
+    <p class="sub" id="metaLine">IMDb verileri yükleniyor…</p>
+  </div>
+  <button class="ghost" id="themeBtn" type="button">Tema</button>
+</header>
+
+<div class="wrap">
+  <aside class="card" aria-label="Filtreler">
+    <div class="field">
+      <span class="lbl">Yapım türü</span>
+      <div class="chips" id="types">
+        <button class="chip" data-v="movie" aria-pressed="true">Film</button>
+        <button class="chip" data-v="tvMovie" aria-pressed="false">TV filmi</button>
+        <button class="chip" data-v="tvSeries" aria-pressed="false">Dizi</button>
+        <button class="chip" data-v="tvMiniSeries" aria-pressed="false">Mini dizi</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl">Cinsiyet</span>
+      <div class="chips" id="gender">
+        <button class="chip" data-v="all" aria-pressed="true">Tümü</button>
+        <button class="chip" data-v="actor" aria-pressed="false">Erkek</button>
+        <button class="chip" data-v="actress" aria-pressed="false">Kadın</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="genre">Tür</label>
+      <select id="genre"><option value="">Tüm türler</option></select>
+    </div>
+    <div class="field">
+      <span class="lbl">Yıl aralığı</span>
+      <div class="row2">
+        <input type="number" id="yearFrom" aria-label="Başlangıç yılı" placeholder="1900">
+        <input type="number" id="yearTo" aria-label="Bitiş yılı" placeholder="2026">
+      </div>
+    </div>
+    <div class="field">
+      <label for="minVotes">Yapım başına en az oy</label>
+      <input type="number" id="minVotes" min="0" step="1000" value="10000">
+      <div class="hint" id="minVotesHint"></div>
+    </div>
+    <div class="field">
+      <label for="minTitles">Oyuncu başına en az yapım</label>
+      <input type="number" id="minTitles" min="1" value="10">
+    </div>
+    <div class="field">
+      <label for="maxOrder">Rol önemi</label>
+      <select id="maxOrder">
+        <option value="10">Tüm önemli roller</option>
+        <option value="4">İlk 4 isim</option>
+        <option value="2">İlk 2 isim (başrol)</option>
+        <option value="1">Yalnızca 1. isim</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="prior">Güven katsayısı</label>
+      <input type="number" id="prior" min="0" max="200" value="10">
+      <div class="hint">Bayes puanında kaç “ortalama yapım” eklenerek az yapımlı oyuncuların dengeleneceği.</div>
+    </div>
+    <button class="ghost" id="resetBtn" type="button">Filtreleri sıfırla</button>
+  </aside>
+
+  <main class="card">
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="Oyuncu ara…" aria-label="Oyuncu ara">
+      <select id="sort" aria-label="Sıralama ölçütü">
+        <option value="score">Bayes puanı</option>
+        <option value="wavg">Oy ağırlıklı ortalama</option>
+        <option value="avg">Ortalama puan</option>
+        <option value="votes">Toplam oy (popülerlik)</option>
+        <option value="count">Yapım sayısı</option>
+        <option value="best">En iyi yapım puanı</option>
+      </select>
+    </div>
+    <div class="status" id="status">…</div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Oyuncu</th>
+          <th data-sort="score">Bayes</th><th data-sort="wavg">Ağırlıklı</th><th data-sort="avg">Ort.</th>
+          <th data-sort="count">Yapım</th><th data-sort="votes">Toplam oy</th><th data-sort="best">En iyi</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty" class="empty" hidden></div>
+    <button class="btn more" id="moreBtn" hidden>Daha fazla göster</button>
+  </main>
+</div>
+
+<footer style="max-width:1240px;margin:0 auto;padding:8px 16px 32px;color:var(--muted);font-size:12px">
+  Veri: <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener">IMDb Non-Commercial Datasets</a>, kişisel ve ticari olmayan kullanım içindir. Bu site IMDb ile bağlantılı değildir.
+</footer>
+
+<dialog id="dlg">
+  <div class="dlg-head">
+    <div><h2 id="dName"></h2><div class="sub" id="dSub"></div></div>
+    <div><button class="ghost" id="dClose" type="button" aria-label="Kapat">✕</button></div>
+  </div>
+  <div class="stats" id="dStats"></div>
+  <div class="tablewrap" style="padding: 0 8px 16px">
+    <table class="films"><thead><tr><th>Yıl</th><th>Yapım</th><th title="Jenerikteki sırası">Sıra</th><th>Puan</th><th>Oy</th></tr></thead><tbody id="dFilms"></tbody></table>
+  </div>
+</dialog>
+
+<script>
+const GENRES_TR = {Action:"Aksiyon",Adult:"Yetişkin",Adventure:"Macera",Animation:"Animasyon",Biography:"Biyografi",Comedy:"Komedi",Crime:"Suç",Documentary:"Belgesel",Drama:"Dram",Family:"Aile",Fantasy:"Fantastik","Film-Noir":"Kara film","Game-Show":"Yarışma",History:"Tarih",Horror:"Korku",Music:"Müzik",Musical:"Müzikal",Mystery:"Gizem",News:"Haber","Reality-TV":"Realite",Romance:"Romantik","Sci-Fi":"Bilim kurgu",Short:"Kısa",Sport:"Spor","Talk-Show":"Talk show",Thriller:"Gerilim",War:"Savaş",Western:"Western"};
+const TYPES_TR = {movie:"Film",tvMovie:"TV filmi",tvSeries:"Dizi",tvMiniSeries:"Mini dizi"};
+const DEFAULTS = {types:"movie", gender:"all", genre:"", yearFrom:"", yearTo:"", minVotes:"10000", minTitles:"10", maxOrder:"10", prior:"10", sort:"score", q:""};
+const $ = id => document.getElementById(id);
+const nf = new Intl.NumberFormat("tr-TR");
+const f2 = v => v == null ? "–" : v.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store = {get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}};
+
+let state = {...DEFAULTS};
+let offset = 0, reqId = 0, meta = null;
+const PAGE = 50;
+
+// ----- tema
+function applyTheme(t){ if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+applyTheme(store.get("theme"));
+$("themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = dark ? "light" : "dark"; applyTheme(next); store.set("theme", next);
+};
+
+// ----- durum <-> URL
+function readHash(){
+  const p = new URLSearchParams(location.hash.slice(1));
+  state = {...DEFAULTS}; for (const k in DEFAULTS) if (p.has(k)) state[k] = p.get(k);
+}
+function writeHash(){
+  const p = new URLSearchParams();
+  for (const k in state) if (state[k] !== DEFAULTS[k]) p.set(k, state[k]);
+  history.replaceState(null, "", "#" + p.toString());
+}
+function syncForm(){
+  const types = state.types.split(",");
+  document.querySelectorAll("#types .chip").forEach(b => b.setAttribute("aria-pressed", types.includes(b.dataset.v)));
+  document.querySelectorAll("#gender .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.gender));
+  for (const k of ["genre","yearFrom","yearTo","minVotes","minTitles","maxOrder","prior","sort","q"]) $(k).value = state[k];
+  document.querySelectorAll("th[data-sort]").forEach(th => th.classList.toggle("active", th.dataset.sort === state.sort));
+}
+
+// ----- veri (tamamen tarayıcıda hesaplanır)
+let DB = null, ranked = [], rankKey = "";
+const imdbId = (p, n) => p + String(n).padStart(7, "0");
+const num = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
+
+function compute(){
+  const T = DB.titles, A = DB.actors, C = DB.credits;
+  const types = new Set(state.types.split(",").map(t => DB.types.indexOf(t)));
+  const gi = DB.genres.indexOf(state.genre), gmask = gi >= 0 ? 2 ** gi : 0;
+  const y0 = num(state.yearFrom, 0), y1 = num(state.yearTo, 9999), mv = num(state.minVotes, 0);
+  const minT = Math.max(1, num(state.minTitles, 1)), maxO = num(state.maxOrder, 10), m = Math.max(0, num(state.prior, 0));
+  const gender = state.gender === "actress" ? 1 : state.gender === "actor" ? 0 : -1;
+  const pass = new Uint8Array(T.id.length);
+  let sum = 0, cnt = 0;
+  for (let i = 0; i < T.id.length; i++) {
+    if (types.has(T.ty[i]) && T.y[i] >= y0 && T.y[i] <= y1 && T.v[i] >= mv && (!gmask || (T.g[i] & gmask))) {
+      pass[i] = 1; sum += T.r[i]; cnt++;
+    }
+  }
+  const mean = cnt ? sum / cnt / 10 : 0;
+  const out = [];
+  for (let a = 0; a < A.id.length; a++) {
+    let n = 0, rs = 0, rv = 0, vs = 0, best = 0, fy = 9999, ly = 0;
+    for (let k = A.s[a]; k < A.s[a + 1]; k++) {
+      const c = C[k], t = c >> 5, ord = (c >> 1) & 15;
+      if (!pass[t] || ord > maxO || (gender >= 0 && (c & 1) !== gender)) continue;
+      const r = T.r[t] / 10, v = T.v[t];
+      n++; rs += r; rv += r * v; vs += v;
+      if (r > best) best = r;
+      if (T.y[t] && T.y[t] < fy) fy = T.y[t];
+      if (T.y[t] > ly) ly = T.y[t];
+    }
+    if (n < minT) continue;
+    const avg = rs / n;
+    out.push({a, id: imdbId("nm", A.id[a]), name: A.n[a], birth: A.b[a], death: A.d[a], count: n, avg,
+      wavg: rv / vs, votes: vs, best, first_year: fy === 9999 ? 0 : fy, last_year: ly, score: (n * avg + m * mean) / (n + m)});
+  }
+  const s = state.sort;
+  out.sort((x, y) => (y[s] - x[s]) || (y.votes - x.votes));
+  out.forEach((r, i) => r.rank = i + 1);
+  return {mean, out};
+}
+
+let computed = null;
+function load(append = false){
+  if (!DB) return;
+  if (!append) offset = 0;
+  const key = JSON.stringify({...state, q: ""});
+  if (key !== rankKey) { computed = compute(); rankKey = key; }
+  const q = state.q.toLocaleLowerCase("tr");
+  const list = q ? computed.out.filter(r => r.name.toLocaleLowerCase("tr").includes(q)) : computed.out;
+  render({total: list.length, pool: computed.out.length, mean: computed.mean, sort: state.sort,
+          items: list.slice(offset, offset + PAGE)}, append);
+}
+function render(d, append){
+  const maxScore = 10;
+  const rows = d.items.map(r => {
+    const life = r.birth ? `${r.birth}${r.death ? "–" + r.death : ""}` : "";
+    const span = r.first_year ? `${r.first_year}–${r.last_year}` : "";
+    const val = r[d.sort === "votes" || d.sort === "count" ? "score" : d.sort];
+    const w = Math.max(4, Math.round(((val - 5) / (maxScore - 5)) * 60));
+    return `<tr data-a="${r.a}">
+      <td class="rank">${r.rank}</td>
+      <td class="name">${esc(r.name || r.id)}<small>${[life, span && "Kariyer " + span].filter(Boolean).join(" · ")}</small></td>
+      <td><span class="bar"><i style="width:${w}px"></i>${f2(r.score)}</span></td>
+      <td>${f2(r.wavg)}</td><td>${f2(r.avg)}</td><td>${r.count}</td><td>${nf.format(r.votes)}</td><td>${f2(r.best)}</td>
+    </tr>`;
+  }).join("");
+  $("tbody").innerHTML = append ? $("tbody").innerHTML + rows : rows;
+  offset += d.items.length;
+  $("moreBtn").hidden = offset >= d.total;
+  $("status").textContent = d.pool
+    ? `${nf.format(d.pool)} oyuncu sıralandı${state.q ? `, ${nf.format(d.total)} eşleşme` : ""} · filtrelenen yapımların ortalama puanı ${f2(d.mean)}`
+    : "";
+  const empty = !d.total;
+  $("empty").hidden = !empty;
+  if (empty) $("empty").textContent = d.pool ? "Aramayla eşleşen oyuncu yok." : "Bu filtrelerle oyuncu bulunamadı. Oy ya da yapım sınırını düşürmeyi deneyin.";
+}
+
+// ----- oyuncu detayı
+function openActor(a){
+  $("dlg").showModal();
+  {
+    const A = DB.actors, T = DB.titles;
+    const t = [];
+    for (let k = A.s[a]; k < A.s[a + 1]; k++) {
+      const c = DB.credits[k], i = c >> 5;
+      t.push({tconst: imdbId("tt", T.id[i]), type: DB.types[T.ty[i]], title: T.ti[i], year: T.y[i] || null,
+              rating: T.r[i] / 10, votes: T.v[i], ordering: (c >> 1) & 15});
+    }
+    t.sort((x, y) => (y.year || 0) - (x.year || 0) || y.votes - x.votes);
+    $("dName").innerHTML = `<a href="https://www.imdb.com/name/${imdbId("nm", A.id[a])}/" target="_blank" rel="noopener">${esc(A.n[a])}</a>`;
+    $("dSub").textContent = A.b[a] ? `${A.b[a]}${A.d[a] ? "–" + A.d[a] : ""}` : "";
+    const votes = t.reduce((s, x) => s + x.votes, 0);
+    const avg = t.length ? t.reduce((s, x) => s + x.rating, 0) / t.length : null;
+    const wavg = votes ? t.reduce((s, x) => s + x.rating * x.votes, 0) / votes : null;
+    $("dStats").innerHTML = [["Yapım (filtresiz)", t.length], ["Ortalama", f2(avg)], ["Ağırlıklı", f2(wavg)], ["Toplam oy", nf.format(votes)]]
+      .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+    $("dFilms").innerHTML = t.map(x => `<tr>
+      <td class="num">${x.year ?? "–"}</td>
+      <td><a href="https://www.imdb.com/title/${esc(x.tconst)}/" target="_blank" rel="noopener">${esc(x.title)}</a>${x.type !== "movie" ? `<span class="tag">${TYPES_TR[x.type] || x.type}</span>` : ""}</td>
+      <td class="num">${x.ordering}.</td><td class="num">${f2(x.rating)}</td><td class="num">${nf.format(x.votes)}</td></tr>`).join("")
+      || `<tr><td colspan="5">Kayıt yok</td></tr>`;
+  }
+}
+$("dClose").onclick = () => $("dlg").close();
+$("dlg").addEventListener("click", e => { if (e.target === $("dlg")) $("dlg").close(); });
+$("tbody").addEventListener("click", e => { const tr = e.target.closest("tr[data-a]"); if (tr) openActor(+tr.dataset.a); });
+
+// ----- olaylar
+let timer;
+function change(k, v, debounce = 0){
+  state[k] = v; writeHash(); syncForm();
+  clearTimeout(timer); timer = setTimeout(() => load(), debounce);
+}
+$("types").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  const set = new Set(state.types.split(","));
+  set.has(b.dataset.v) ? set.delete(b.dataset.v) : set.add(b.dataset.v);
+  if (!set.size) return;
+  change("types", [...set].join(","));
+});
+$("gender").addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) change("gender", b.dataset.v); });
+for (const k of ["genre","maxOrder","sort"]) $(k).addEventListener("change", e => change(k, e.target.value));
+for (const k of ["yearFrom","yearTo","minVotes","minTitles","prior","q"]) $(k).addEventListener("input", e => change(k, e.target.value.trim(), 350));
+document.querySelectorAll("th[data-sort]").forEach(th => th.onclick = () => change("sort", th.dataset.sort));
+$("moreBtn").onclick = () => load(true);
+$("resetBtn").onclick = () => { state = {...DEFAULTS}; writeHash(); syncForm(); load(); };
+window.addEventListener("hashchange", () => { readHash(); syncForm(); load(); });
+
+// ----- başlat
+(async () => {
+  readHash();
+  syncForm();
+  $("status").textContent = "IMDb verisi yükleniyor (~3 MB)…";
+  try {
+    const r = await fetch("data.json");
+    if (!r.ok) throw new Error("data.json yüklenemedi (" + r.status + ")");
+    DB = await r.json();
+    const ys = DB.titles.y.filter(Boolean);
+    $("genre").insertAdjacentHTML("beforeend", DB.genres.filter(g => g !== "Adult")
+      .map(g => `<option value="${esc(g)}">${esc(GENRES_TR[g] || g)}</option>`).join(""));
+    syncForm();
+    $("yearFrom").placeholder = Math.min(...ys); $("yearTo").placeholder = Math.max(...ys);
+    $("minTitles").min = DB.meta.minCredits;
+    $("metaLine").textContent = `${nf.format(DB.titles.id.length)} yapım · ${nf.format(DB.actors.id.length)} oyuncu · IMDb verisi ${DB.meta.imported_at}`;
+    $("minVotesHint").textContent = `Veride en az ${nf.format(+DB.meta.min_votes)} oy alan yapımlar var.`;
+    load();
+  } catch (e) {
+    $("metaLine").innerHTML = `<span class="err">${esc(e.message)}</span>`;
+    $("status").textContent = "";
+  }
+})();
+</script>
+</body>
+</html>
