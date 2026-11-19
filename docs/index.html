@@ -80,6 +80,16 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .stat { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
 .stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
 .stat span { font-size: 12px; color: var(--muted); }
+.dfilters { padding: 14px 20px 4px; border-bottom: 1px solid var(--line); }
+.dgrid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1.3fr; gap: 8px; margin: 10px 0; }
+@media (max-width: 640px) { .dgrid { grid-template-columns: 1fr 1fr; } }
+.dgrid label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.dgrid input, .dgrid select { padding: 6px 8px; font-size: 13px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.dactions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; padding-bottom: 10px; }
+.dactions .hint { margin: 0 auto 0 0; }
+button.sm { padding: 6px 10px; font-size: 13px; }
+.films th[data-dsort] { text-align: left; }
+.films th[data-dsort].active::after { content: attr(data-arrow); margin-left: 4px; }
 .films td { text-align: left; white-space: normal; }
 .films td.num { text-align: right; white-space: nowrap; }
 .tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); margin-left: 4px; }
@@ -188,9 +198,36 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
     <div><h2 id="dName"></h2><div class="sub" id="dSub"></div></div>
     <div><button class="ghost" id="dClose" type="button" aria-label="Kapat">✕</button></div>
   </div>
+  <div class="dfilters" id="dFilters">
+    <div class="chips" id="dTypes">
+      <button class="chip" data-v="movie">Film</button>
+      <button class="chip" data-v="tvMovie">TV filmi</button>
+      <button class="chip" data-v="tvSeries">Dizi</button>
+      <button class="chip" data-v="tvMiniSeries">Mini dizi</button>
+    </div>
+    <div class="dgrid">
+      <label>Tür<select id="dGenre"><option value="">Tüm türler</option></select></label>
+      <label>Yıldan<input type="number" id="dYearFrom" placeholder="–"></label>
+      <label>Yıla<input type="number" id="dYearTo" placeholder="–"></label>
+      <label>En az oy<input type="number" id="dMinVotes" min="0" step="1000"></label>
+      <label>Rol önemi<select id="dMaxOrder">
+        <option value="10">Tüm roller</option><option value="4">İlk 4 isim</option>
+        <option value="2">İlk 2 isim</option><option value="1">Yalnızca 1. isim</option>
+      </select></label>
+    </div>
+    <div class="dactions">
+      <span class="hint" id="dFilterNote"></span>
+      <button class="ghost sm" id="dAll" type="button">Tümünü göster</button>
+      <button class="ghost sm" id="dReset" type="button">Ana filtrelere dön</button>
+      <button class="btn sm" id="dApply" type="button" title="Bu filtreleri ana sıralamaya da uygular">Sıralamaya uygula</button>
+    </div>
+  </div>
   <div class="stats" id="dStats"></div>
   <div class="tablewrap" style="padding: 0 8px 16px">
-    <table class="films"><thead><tr><th>Yıl</th><th>Yapım</th><th title="Jenerikteki sırası">Sıra</th><th>Puan</th><th>Oy</th></tr></thead><tbody id="dFilms"></tbody></table>
+    <table class="films"><thead><tr>
+      <th data-dsort="year">Yıl</th><th data-dsort="title">Yapım</th><th data-dsort="ordering" title="Jenerikteki sırası">Sıra</th>
+      <th data-dsort="rating">Puan</th><th data-dsort="votes">Oy</th>
+    </tr></thead><tbody id="dFilms"></tbody></table>
   </div>
 </dialog>
 
@@ -239,19 +276,29 @@ let DB = null, ranked = [], rankKey = "";
 const imdbId = (p, n) => p + String(n).padStart(7, "0");
 const num = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d; };
 
+// Yapım filtreleri: hem ana sıralamada hem oyuncu penceresinde kullanılır.
+function parseFilters(st){
+  const gi = DB.genres.indexOf(st.genre);
+  return {
+    types: new Set(st.types.split(",").map(t => DB.types.indexOf(t))),
+    gmask: gi >= 0 ? 2 ** gi : 0,
+    y0: num(st.yearFrom, 0), y1: num(st.yearTo, 9999), mv: num(st.minVotes, 0), maxO: num(st.maxOrder, 10),
+  };
+}
+function titleOk(f, i){
+  const T = DB.titles;
+  return f.types.has(T.ty[i]) && T.y[i] >= f.y0 && T.y[i] <= f.y1 && T.v[i] >= f.mv && (!f.gmask || (T.g[i] & f.gmask));
+}
+
 function compute(){
   const T = DB.titles, A = DB.actors, C = DB.credits;
-  const types = new Set(state.types.split(",").map(t => DB.types.indexOf(t)));
-  const gi = DB.genres.indexOf(state.genre), gmask = gi >= 0 ? 2 ** gi : 0;
-  const y0 = num(state.yearFrom, 0), y1 = num(state.yearTo, 9999), mv = num(state.minVotes, 0);
-  const minT = Math.max(1, num(state.minTitles, 1)), maxO = num(state.maxOrder, 10), m = Math.max(0, num(state.prior, 0));
+  const f = parseFilters(state), maxO = f.maxO;
+  const minT = Math.max(1, num(state.minTitles, 1)), m = Math.max(0, num(state.prior, 0));
   const gender = state.gender === "actress" ? 1 : state.gender === "actor" ? 0 : -1;
   const pass = new Uint8Array(T.id.length);
   let sum = 0, cnt = 0;
   for (let i = 0; i < T.id.length; i++) {
-    if (types.has(T.ty[i]) && T.y[i] >= y0 && T.y[i] <= y1 && T.v[i] >= mv && (!gmask || (T.g[i] & gmask))) {
-      pass[i] = 1; sum += T.r[i]; cnt++;
-    }
+    if (titleOk(f, i)) { pass[i] = 1; sum += T.r[i]; cnt++; }
   }
   const mean = cnt ? sum / cnt / 10 : 0;
   const out = [];
@@ -314,31 +361,90 @@ function render(d, append){
 }
 
 // ----- oyuncu detayı
+// Pencere kendi filtre kopyasıyla açılır; buradaki değişiklikler ana sıralamayı etkilemez (Sıralamaya uygula hariç).
+const DLG_KEYS = ["types", "genre", "yearFrom", "yearTo", "minVotes", "maxOrder"];
+const SHOW_ALL = {types: "movie,tvMovie,tvSeries,tvMiniSeries", genre: "", yearFrom: "", yearTo: "", minVotes: "0", maxOrder: "10"};
+const DSORT_DIR = {year: -1, title: 1, ordering: 1, rating: -1, votes: -1};
+const pick = (o, keys) => Object.fromEntries(keys.map(k => [k, o[k]]));
+let dlgA = null, dState = null, dSort = {key: "year", dir: -1};
+
 function openActor(a){
+  dlgA = a;
+  dState = pick(state, DLG_KEYS);
+  // Penceredeki varsayılan sıralama, ana listede seçilen ölçüte göre belirlenir.
+  const key = state.sort === "votes" ? "votes" : state.sort === "count" ? "year" : "rating";
+  dSort = {key, dir: DSORT_DIR[key]};
+  const A = DB.actors;
+  $("dName").innerHTML = `<a href="https://www.imdb.com/name/${imdbId("nm", A.id[a])}/" target="_blank" rel="noopener">${esc(A.n[a])}</a>`;
+  $("dSub").textContent = A.b[a] ? `${A.b[a]}${A.d[a] ? "–" + A.d[a] : ""}` : "";
+  syncDlgForm(); renderActor();
   $("dlg").showModal();
-  {
-    const A = DB.actors, T = DB.titles;
-    const t = [];
-    for (let k = A.s[a]; k < A.s[a + 1]; k++) {
-      const c = DB.credits[k], i = c >> 5;
-      t.push({tconst: imdbId("tt", T.id[i]), type: DB.types[T.ty[i]], title: T.ti[i], year: T.y[i] || null,
-              rating: T.r[i] / 10, votes: T.v[i], ordering: (c >> 1) & 15});
-    }
-    t.sort((x, y) => (y.year || 0) - (x.year || 0) || y.votes - x.votes);
-    $("dName").innerHTML = `<a href="https://www.imdb.com/name/${imdbId("nm", A.id[a])}/" target="_blank" rel="noopener">${esc(A.n[a])}</a>`;
-    $("dSub").textContent = A.b[a] ? `${A.b[a]}${A.d[a] ? "–" + A.d[a] : ""}` : "";
-    const votes = t.reduce((s, x) => s + x.votes, 0);
-    const avg = t.length ? t.reduce((s, x) => s + x.rating, 0) / t.length : null;
-    const wavg = votes ? t.reduce((s, x) => s + x.rating * x.votes, 0) / votes : null;
-    $("dStats").innerHTML = [["Yapım (filtresiz)", t.length], ["Ortalama", f2(avg)], ["Ağırlıklı", f2(wavg)], ["Toplam oy", nf.format(votes)]]
-      .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
-    $("dFilms").innerHTML = t.map(x => `<tr>
-      <td class="num">${x.year ?? "–"}</td>
-      <td><a href="https://www.imdb.com/title/${esc(x.tconst)}/" target="_blank" rel="noopener">${esc(x.title)}</a>${x.type !== "movie" ? `<span class="tag">${TYPES_TR[x.type] || x.type}</span>` : ""}</td>
-      <td class="num">${x.ordering}.</td><td class="num">${f2(x.rating)}</td><td class="num">${nf.format(x.votes)}</td></tr>`).join("")
-      || `<tr><td colspan="5">Kayıt yok</td></tr>`;
-  }
+  $("dlg").scrollTop = 0;
 }
+function syncDlgForm(){
+  const types = dState.types.split(",");
+  document.querySelectorAll("#dTypes .chip").forEach(b => b.setAttribute("aria-pressed", types.includes(b.dataset.v)));
+  $("dGenre").value = dState.genre; $("dYearFrom").value = dState.yearFrom; $("dYearTo").value = dState.yearTo;
+  $("dMinVotes").value = dState.minVotes; $("dMaxOrder").value = dState.maxOrder;
+  const same = DLG_KEYS.every(k => String(dState[k]) === String(state[k]));
+  $("dFilterNote").textContent = same ? "Ana sıralamanın filtreleri uygulanıyor" : "Bu pencereye özel filtreler";
+  $("dApply").disabled = same; $("dApply").style.opacity = same ? .5 : 1;
+}
+function renderActor(){
+  const A = DB.actors, T = DB.titles, a = dlgA, f = parseFilters(dState);
+  let total = 0;
+  const t = [];
+  for (let k = A.s[a]; k < A.s[a + 1]; k++) {
+    const c = DB.credits[k], i = c >> 5, ordering = (c >> 1) & 15;
+    total++;
+    if (!titleOk(f, i) || ordering > f.maxO) continue;
+    t.push({tconst: imdbId("tt", T.id[i]), type: DB.types[T.ty[i]], title: T.ti[i], year: T.y[i] || 0,
+            rating: T.r[i] / 10, votes: T.v[i], ordering});
+  }
+  const {key, dir} = dSort;
+  t.sort((x, y) => (key === "title" ? x.title.localeCompare(y.title, "tr") : x[key] - y[key]) * dir
+                   || y.votes - x.votes);
+  const votes = t.reduce((s, x) => s + x.votes, 0);
+  const avg = t.length ? t.reduce((s, x) => s + x.rating, 0) / t.length : null;
+  const wavg = votes ? t.reduce((s, x) => s + x.rating * x.votes, 0) / votes : null;
+  $("dStats").innerHTML = [["Yapım", `${t.length}<small style="font-size:13px;color:var(--muted)"> / ${total}</small>`],
+    ["Ortalama", f2(avg)], ["Ağırlıklı", f2(wavg)], ["Toplam oy", nf.format(votes)]]
+    .map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("");
+  document.querySelectorAll(".films th[data-dsort]").forEach(th => {
+    th.classList.toggle("active", th.dataset.dsort === key);
+    th.dataset.arrow = dir > 0 ? "▲" : "▼";
+  });
+  $("dFilms").innerHTML = t.map(x => `<tr>
+    <td class="num">${x.year || "–"}</td>
+    <td><a href="https://www.imdb.com/title/${esc(x.tconst)}/" target="_blank" rel="noopener">${esc(x.title)}</a>${x.type !== "movie" ? `<span class="tag">${TYPES_TR[x.type] || x.type}</span>` : ""}</td>
+    <td class="num">${x.ordering}.</td><td class="num">${f2(x.rating)}</td><td class="num">${nf.format(x.votes)}</td></tr>`).join("")
+    || `<tr><td colspan="5" style="color:var(--muted);padding:24px 12px">Bu filtrelerle yapım yok. “Tümünü göster” ile filtreleri kaldırabilirsiniz.</td></tr>`;
+}
+let dTimer;
+function dChange(k, v, debounce = 0){
+  dState[k] = v; syncDlgForm();
+  clearTimeout(dTimer); dTimer = setTimeout(renderActor, debounce);
+}
+$("dTypes").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  const set = new Set(dState.types.split(","));
+  set.has(b.dataset.v) ? set.delete(b.dataset.v) : set.add(b.dataset.v);
+  if (set.size) dChange("types", [...set].join(","));
+});
+$("dGenre").addEventListener("change", e => dChange("genre", e.target.value));
+$("dMaxOrder").addEventListener("change", e => dChange("maxOrder", e.target.value));
+for (const [id, k] of [["dYearFrom","yearFrom"],["dYearTo","yearTo"],["dMinVotes","minVotes"]])
+  $(id).addEventListener("input", e => dChange(k, e.target.value.trim(), 300));
+document.querySelectorAll(".films th[data-dsort]").forEach(th => th.onclick = () => {
+  const k = th.dataset.dsort;
+  dSort = dSort.key === k ? {key: k, dir: -dSort.dir} : {key: k, dir: DSORT_DIR[k]};
+  renderActor();
+});
+$("dAll").onclick = () => { dState = {...SHOW_ALL}; syncDlgForm(); renderActor(); };
+$("dReset").onclick = () => { dState = pick(state, DLG_KEYS); syncDlgForm(); renderActor(); };
+$("dApply").onclick = () => {
+  Object.assign(state, dState); writeHash(); syncForm(); load(); syncDlgForm();
+};
 $("dClose").onclick = () => $("dlg").close();
 $("dlg").addEventListener("click", e => { if (e.target === $("dlg")) $("dlg").close(); });
 $("tbody").addEventListener("click", e => { const tr = e.target.closest("tr[data-a]"); if (tr) openActor(+tr.dataset.a); });
@@ -374,8 +480,10 @@ window.addEventListener("hashchange", () => { readHash(); syncForm(); load(); })
     if (!r.ok) throw new Error("data.json yüklenemedi (" + r.status + ")");
     DB = await r.json();
     const ys = DB.titles.y.filter(Boolean);
-    $("genre").insertAdjacentHTML("beforeend", DB.genres.filter(g => g !== "Adult")
-      .map(g => `<option value="${esc(g)}">${esc(GENRES_TR[g] || g)}</option>`).join(""));
+    const genreOpts = DB.genres.filter(g => g !== "Adult")
+      .map(g => `<option value="${esc(g)}">${esc(GENRES_TR[g] || g)}</option>`).join("");
+    $("genre").insertAdjacentHTML("beforeend", genreOpts);
+    $("dGenre").insertAdjacentHTML("beforeend", genreOpts);
     syncForm();
     $("yearFrom").placeholder = Math.min(...ys); $("yearTo").placeholder = Math.max(...ys);
     $("minTitles").min = DB.meta.minCredits;
