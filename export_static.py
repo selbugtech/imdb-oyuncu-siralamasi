@@ -1,7 +1,7 @@
 """data/imdb.db içinden GitHub Pages için sıkıştırılmış docs/data.json üretir.
 
 Kullanım:
-    python export_static.py                # en az 3 yapımı olan oyuncular
+    python export_static.py                # oyunculukta veya yönetmenlikte en az 3 yapımı olan kişiler
     python export_static.py --min-credits 5
 """
 import argparse
@@ -53,10 +53,13 @@ def main():
         """
         SELECT c.nconst, n.name, n.birth, n.death, c.tconst, c.ordering, c.category
         FROM credits c JOIN names n ON n.nconst = c.nconst
-        WHERE c.nconst IN (SELECT nconst FROM credits GROUP BY nconst HAVING COUNT(*) >= ?)
+        WHERE c.nconst IN (
+            SELECT nconst FROM credits GROUP BY nconst
+            HAVING SUM(category != 'director') >= ? OR SUM(category = 'director') >= ?
+        )
         ORDER BY c.nconst
         """,
-        (a.min_credits,),
+        (a.min_credits, a.min_credits),
     )
     last = None
     for nconst, name, birth, death, tconst, ordering, category in rows:
@@ -67,8 +70,9 @@ def main():
             actors["d"].append(death or 0)
             actors["s"].append(len(credits))
             last = nconst
-        # tek sayı: yapım indeksi * 32 + sıra * 2 + kadın oyuncu bayrağı
-        credits.append(tindex[tconst] * 32 + min(ordering, 15) * 2 + (category == "actress"))
+        # tek sayı: yapım indeksi * 64 + sıra * 4 + görev (0 oyuncu, 1 kadın oyuncu, 2 yönetmen)
+        role = {"actor": 0, "actress": 1, "director": 2}[category]
+        credits.append(tindex[tconst] * 64 + min(ordering, 15) * 4 + role)
     actors["s"].append(len(credits))
 
     data = {

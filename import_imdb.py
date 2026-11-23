@@ -27,7 +27,7 @@ RAW_DIR = os.path.join(HERE, "data", "raw")
 DB_PATH = os.path.join(HERE, "data", "imdb.db")
 
 TITLE_TYPES = {"movie", "tvMovie", "tvSeries", "tvMiniSeries"}
-CATEGORIES = {"actor", "actress"}
+CATEGORIES = {"actor", "actress", "director"}
 
 
 def log(msg):
@@ -123,8 +123,8 @@ def build(min_votes):
     del ratings, batch
     log(f"  {len(title_ids):,} yapım kaydedildi")
 
-    log("Oyuncu kadroları okunuyor (en büyük dosya, birkaç dakika sürebilir)...")
-    # Aynı kişi bir yapımda birden çok satırda olabilir: (yapım, kişi) başına tek kayıt tutulur.
+    log("Oyuncu ve yönetmen kayıtları okunuyor (en büyük dosya, birkaç dakika sürebilir)...")
+    # Aynı kişi bir yapımda birden çok satırda olabilir: (yapım, kişi, görev) başına tek kayıt tutulur.
     credits = {}
     for r in rows("title.principals.tsv.gz"):
         if r[0] not in title_ids or r[3] not in CATEGORIES:
@@ -134,7 +134,7 @@ def build(min_votes):
         chars = [c for c in chars if not c.startswith("Self")] if chars else chars
         if r[5] != "\\N" and not chars:
             continue
-        key = (r[0], r[2])
+        key = (r[0], r[2], r[3] == "director")
         prev = credits.get(key)
         if prev is None:
             credits[key] = [r[3], int(r[1]), chars]
@@ -143,10 +143,10 @@ def build(min_votes):
             prev[2] += [c for c in chars if c not in prev[2]]
     db.executemany(
         "INSERT INTO credits VALUES (?,?,?,?,?)",
-        ((t, n, cat, o, " / ".join(ch)) for (t, n), (cat, o, ch) in credits.items()),
+        ((t, n, cat, o, " / ".join(ch)) for (t, n, _), (cat, o, ch) in credits.items()),
     )
-    actor_ids = {n for _, n in credits}
-    log(f"  {len(credits):,} oyuncu kaydı, {len(actor_ids):,} farklı oyuncu")
+    actor_ids = {n for _, n, _ in credits}
+    log(f"  {len(credits):,} kayıt, {len(actor_ids):,} farklı kişi")
     del credits
 
     log("İsimler okunuyor...")

@@ -30,7 +30,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 Inter
 a { color: inherit; }
 header { max-width: 1240px; margin: 0 auto; padding: 28px 16px 8px; display: flex; gap: 16px; align-items: end; justify-content: space-between; flex-wrap: wrap; }
 h1 { font-family: Fraunces, Georgia, serif; font-size: 34px; margin: 0; letter-spacing: -.01em; }
-h1 span { color: var(--accent); }
+h1 span:last-child { color: var(--accent); }
+.director-mode .cast-only { display: none !important; }
 .sub { color: var(--muted); margin: 4px 0 0; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 270px 1fr; gap: 20px; align-items: start; }
 @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
@@ -68,6 +69,7 @@ tr:nth-child(-n+3) .rank { color: var(--accent); font-size: 17px; }
 .bar { display: inline-flex; align-items: center; gap: 8px; }
 .bar i { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); }
 .more { display: block; margin: 16px auto; }
+[hidden] { display: none !important; }
 button.btn { background: var(--accent); color: var(--accent-ink); border: 0; padding: 9px 16px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
 button.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); padding: 7px 12px; border-radius: 8px; font: inherit; cursor: pointer; }
 .empty { padding: 48px 16px; text-align: center; color: var(--muted); }
@@ -99,7 +101,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 <body>
 <header>
   <div>
-    <h1>Oyuncu <span>Sıralaması</span></h1>
+    <h1><span id="roleTitle">Oyuncu</span> <span>Sıralaması</span></h1>
     <p class="sub" id="metaLine">IMDb verileri yükleniyor…</p>
   </div>
   <button class="ghost" id="themeBtn" type="button">Tema</button>
@@ -107,6 +109,13 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 
 <div class="wrap">
   <aside class="card" aria-label="Filtreler">
+    <div class="field">
+      <span class="lbl">Sıralanacak kişiler</span>
+      <div class="chips" id="role">
+        <button class="chip" data-v="cast" aria-pressed="true">Oyuncular</button>
+        <button class="chip" data-v="director" aria-pressed="false">Yönetmenler</button>
+      </div>
+    </div>
     <div class="field">
       <span class="lbl">Yapım türü</span>
       <div class="chips" id="types">
@@ -116,7 +125,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
         <button class="chip" data-v="tvMiniSeries" aria-pressed="false">Mini dizi</button>
       </div>
     </div>
-    <div class="field">
+    <div class="field cast-only">
       <span class="lbl">Cinsiyet</span>
       <div class="chips" id="gender">
         <button class="chip" data-v="all" aria-pressed="true">Tümü</button>
@@ -141,10 +150,10 @@ button.sm { padding: 6px 10px; font-size: 13px; }
       <div class="hint" id="minVotesHint"></div>
     </div>
     <div class="field">
-      <label for="minTitles">Oyuncu başına en az yapım</label>
+      <label for="minTitles"><span class="roleWord">Oyuncu</span> başına en az yapım</label>
       <input type="number" id="minTitles" min="1" value="10">
     </div>
-    <div class="field">
+    <div class="field cast-only">
       <label for="maxOrder">Rol önemi</label>
       <select id="maxOrder">
         <option value="10">Tüm önemli roller</option>
@@ -163,7 +172,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 
   <main class="card">
     <div class="toolbar">
-      <input type="text" id="q" placeholder="Oyuncu ara…" aria-label="Oyuncu ara">
+      <input type="text" id="q" placeholder="Oyuncu ara…" aria-label="Kişi ara">
       <select id="sort" aria-label="Sıralama ölçütü">
         <option value="score">Bayes puanı</option>
         <option value="wavg">Oy ağırlıklı ortalama</option>
@@ -177,7 +186,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
     <div class="tablewrap">
       <table>
         <thead><tr>
-          <th>#</th><th>Oyuncu</th>
+          <th>#</th><th class="roleWord">Oyuncu</th>
           <th data-sort="score">Bayes</th><th data-sort="wavg">Ağırlıklı</th><th data-sort="avg">Ort.</th>
           <th data-sort="count">Yapım</th><th data-sort="votes">Toplam oy</th><th data-sort="best">En iyi</th>
         </tr></thead>
@@ -210,7 +219,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
       <label>Yıldan<input type="number" id="dYearFrom" placeholder="–"></label>
       <label>Yıla<input type="number" id="dYearTo" placeholder="–"></label>
       <label>En az oy<input type="number" id="dMinVotes" min="0" step="1000"></label>
-      <label>Rol önemi<select id="dMaxOrder">
+      <label class="cast-only">Rol önemi<select id="dMaxOrder">
         <option value="10">Tüm roller</option><option value="4">İlk 4 isim</option>
         <option value="2">İlk 2 isim</option><option value="1">Yalnızca 1. isim</option>
       </select></label>
@@ -225,7 +234,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
   <div class="stats" id="dStats"></div>
   <div class="tablewrap" style="padding: 0 8px 16px">
     <table class="films"><thead><tr>
-      <th data-dsort="year">Yıl</th><th data-dsort="title">Yapım</th><th data-dsort="ordering" title="Jenerikteki sırası">Sıra</th>
+      <th data-dsort="year">Yıl</th><th data-dsort="title">Yapım</th><th data-dsort="ordering" class="cast-only" title="Jenerikteki sırası">Sıra</th>
       <th data-dsort="rating">Puan</th><th data-dsort="votes">Oy</th>
     </tr></thead><tbody id="dFilms"></tbody></table>
   </div>
@@ -234,7 +243,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 <script>
 const GENRES_TR = {Action:"Aksiyon",Adult:"Yetişkin",Adventure:"Macera",Animation:"Animasyon",Biography:"Biyografi",Comedy:"Komedi",Crime:"Suç",Documentary:"Belgesel",Drama:"Dram",Family:"Aile",Fantasy:"Fantastik","Film-Noir":"Kara film","Game-Show":"Yarışma",History:"Tarih",Horror:"Korku",Music:"Müzik",Musical:"Müzikal",Mystery:"Gizem",News:"Haber","Reality-TV":"Realite",Romance:"Romantik","Sci-Fi":"Bilim kurgu",Short:"Kısa",Sport:"Spor","Talk-Show":"Talk show",Thriller:"Gerilim",War:"Savaş",Western:"Western"};
 const TYPES_TR = {movie:"Film",tvMovie:"TV filmi",tvSeries:"Dizi",tvMiniSeries:"Mini dizi"};
-const DEFAULTS = {types:"movie", gender:"all", genre:"", yearFrom:"", yearTo:"", minVotes:"10000", minTitles:"10", maxOrder:"10", prior:"10", sort:"score", q:""};
+const DEFAULTS = {role:"cast", types:"movie", gender:"all", genre:"", yearFrom:"", yearTo:"", minVotes:"10000", minTitles:"10", maxOrder:"10", prior:"10", sort:"score", q:""};
 const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat("tr-TR");
 const f2 = v => v == null ? "–" : v.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -263,7 +272,15 @@ function writeHash(){
   for (const k in state) if (state[k] !== DEFAULTS[k]) p.set(k, state[k]);
   history.replaceState(null, "", "#" + p.toString());
 }
+const ROLE_WORD = {cast: "Oyuncu", director: "Yönetmen"};
 function syncForm(){
+  const role = state.role === "director" ? "director" : "cast";
+  document.body.classList.toggle("director-mode", role === "director");
+  document.querySelectorAll("#role .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === role));
+  document.querySelectorAll(".roleWord").forEach(el => el.textContent = ROLE_WORD[role]);
+  $("roleTitle").textContent = ROLE_WORD[role];
+  $("q").placeholder = ROLE_WORD[role] + " ara…";
+  document.title = ROLE_WORD[role] + " Sıralaması";
   const types = state.types.split(",");
   document.querySelectorAll("#types .chip").forEach(b => b.setAttribute("aria-pressed", types.includes(b.dataset.v)));
   document.querySelectorAll("#gender .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.gender));
@@ -295,6 +312,7 @@ function compute(){
   const f = parseFilters(state), maxO = f.maxO;
   const minT = Math.max(1, num(state.minTitles, 1)), m = Math.max(0, num(state.prior, 0));
   const gender = state.gender === "actress" ? 1 : state.gender === "actor" ? 0 : -1;
+  const director = state.role === "director";
   const pass = new Uint8Array(T.id.length);
   let sum = 0, cnt = 0;
   for (let i = 0; i < T.id.length; i++) {
@@ -305,8 +323,9 @@ function compute(){
   for (let a = 0; a < A.id.length; a++) {
     let n = 0, rs = 0, rv = 0, vs = 0, best = 0, fy = 9999, ly = 0;
     for (let k = A.s[a]; k < A.s[a + 1]; k++) {
-      const c = C[k], t = c >> 5, ord = (c >> 1) & 15;
-      if (!pass[t] || ord > maxO || (gender >= 0 && (c & 1) !== gender)) continue;
+      const c = C[k], t = c >> 6, ord = (c >> 2) & 15, role = c & 3;
+      if (!pass[t]) continue;
+      if (director ? role !== 2 : (role === 2 || ord > maxO || (gender >= 0 && role !== gender))) continue;
       const r = T.r[t] / 10, v = T.v[t];
       n++; rs += r; rv += r * v; vs += v;
       if (r > best) best = r;
@@ -353,11 +372,11 @@ function render(d, append){
   offset += d.items.length;
   $("moreBtn").hidden = offset >= d.total;
   $("status").textContent = d.pool
-    ? `${nf.format(d.pool)} oyuncu sıralandı${state.q ? `, ${nf.format(d.total)} eşleşme` : ""} · filtrelenen yapımların ortalama puanı ${f2(d.mean)}`
+    ? `${nf.format(d.pool)} ${ROLE_WORD[state.role === "director" ? "director" : "cast"].toLocaleLowerCase("tr")} sıralandı${state.q ? `, ${nf.format(d.total)} eşleşme` : ""} · filtrelenen yapımların ortalama puanı ${f2(d.mean)}`
     : "";
   const empty = !d.total;
   $("empty").hidden = !empty;
-  if (empty) $("empty").textContent = d.pool ? "Aramayla eşleşen oyuncu yok." : "Bu filtrelerle oyuncu bulunamadı. Oy ya da yapım sınırını düşürmeyi deneyin.";
+  if (empty) $("empty").textContent = d.pool ? "Aramayla eşleşen kişi yok." : "Bu filtrelerle kimse bulunamadı. Oy ya da yapım sınırını düşürmeyi deneyin.";
 }
 
 // ----- oyuncu detayı
@@ -391,13 +410,14 @@ function syncDlgForm(){
   $("dApply").disabled = same; $("dApply").style.opacity = same ? .5 : 1;
 }
 function renderActor(){
-  const A = DB.actors, T = DB.titles, a = dlgA, f = parseFilters(dState);
+  const A = DB.actors, T = DB.titles, a = dlgA, f = parseFilters(dState), director = state.role === "director";
   let total = 0;
   const t = [];
   for (let k = A.s[a]; k < A.s[a + 1]; k++) {
-    const c = DB.credits[k], i = c >> 5, ordering = (c >> 1) & 15;
+    const c = DB.credits[k], i = c >> 6, ordering = (c >> 2) & 15, isDir = (c & 3) === 2;
+    if (isDir !== director) continue;
     total++;
-    if (!titleOk(f, i) || ordering > f.maxO) continue;
+    if (!titleOk(f, i) || (!director && ordering > f.maxO)) continue;
     t.push({tconst: imdbId("tt", T.id[i]), type: DB.types[T.ty[i]], title: T.ti[i], year: T.y[i] || 0,
             rating: T.r[i] / 10, votes: T.v[i], ordering});
   }
@@ -417,7 +437,7 @@ function renderActor(){
   $("dFilms").innerHTML = t.map(x => `<tr>
     <td class="num">${x.year || "–"}</td>
     <td><a href="https://www.imdb.com/title/${esc(x.tconst)}/" target="_blank" rel="noopener">${esc(x.title)}</a>${x.type !== "movie" ? `<span class="tag">${TYPES_TR[x.type] || x.type}</span>` : ""}</td>
-    <td class="num">${x.ordering}.</td><td class="num">${f2(x.rating)}</td><td class="num">${nf.format(x.votes)}</td></tr>`).join("")
+    <td class="num cast-only">${x.ordering}.</td><td class="num">${f2(x.rating)}</td><td class="num">${nf.format(x.votes)}</td></tr>`).join("")
     || `<tr><td colspan="5" style="color:var(--muted);padding:24px 12px">Bu filtrelerle yapım yok. “Tümünü göster” ile filtreleri kaldırabilirsiniz.</td></tr>`;
 }
 let dTimer;
@@ -462,6 +482,7 @@ $("types").addEventListener("click", e => {
   if (!set.size) return;
   change("types", [...set].join(","));
 });
+$("role").addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) change("role", b.dataset.v); });
 $("gender").addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) change("gender", b.dataset.v); });
 for (const k of ["genre","maxOrder","sort"]) $(k).addEventListener("change", e => change(k, e.target.value));
 for (const k of ["yearFrom","yearTo","minVotes","minTitles","prior","q"]) $(k).addEventListener("input", e => change(k, e.target.value.trim(), 350));
@@ -487,7 +508,7 @@ window.addEventListener("hashchange", () => { readHash(); syncForm(); load(); })
     syncForm();
     $("yearFrom").placeholder = Math.min(...ys); $("yearTo").placeholder = Math.max(...ys);
     $("minTitles").min = DB.meta.minCredits;
-    $("metaLine").textContent = `${nf.format(DB.titles.id.length)} yapım · ${nf.format(DB.actors.id.length)} oyuncu · IMDb verisi ${DB.meta.imported_at}`;
+    $("metaLine").textContent = `${nf.format(DB.titles.id.length)} yapım · ${nf.format(DB.actors.id.length)} kişi · IMDb verisi ${DB.meta.imported_at}`;
     $("minVotesHint").textContent = `Veride en az ${nf.format(+DB.meta.min_votes)} oy alan yapımlar var.`;
     load();
   } catch (e) {

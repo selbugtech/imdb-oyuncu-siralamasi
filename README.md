@@ -1,6 +1,6 @@
 # IMDb Oyuncu Sıralaması
 
-IMDb'nin resmi veri setlerinden ([IMDb Non-Commercial Datasets](https://developer.imdb.com/non-commercial-datasets/)) oyuncuları rol aldıkları yapımların puanlarına göre sıralayan statik web uygulaması. Sıralama tamamen tarayıcıda hesaplanır; GitHub Pages üzerinde `docs/` klasöründen yayınlanır.
+IMDb'nin resmi veri setlerinden ([IMDb Non-Commercial Datasets](https://developer.imdb.com/non-commercial-datasets/)) oyuncuları ve yönetmenleri yer aldıkları yapımların puanlarına göre sıralayan statik web uygulaması. Sıralama tamamen tarayıcıda hesaplanır; GitHub Pages üzerinde `docs/` klasöründen yayınlanır.
 
 > Veriler IMDb'ye aittir ve yalnızca **kişisel ve ticari olmayan** kullanım içindir. Bu proje IMDb ile bağlantılı değildir.
 
@@ -33,4 +33,4 @@ python export_static.py                  # docs/data.json üretir
 | Toplam oy | Popülerlik göstergesi |
 | Yapım sayısı / En iyi | Filtrelere uyan yapım sayısı ve en yüksek puanlı yapım |
 
-Filtreler: yapım türü, cinsiyet, tür, yıl aralığı, yapım başına en az oy, oyuncu başına en az yapım, rol önemi (jenerikteki ilk N isim). Filtreler adres çubuğuna yazılır, bağlantı paylaşılabilir.
+Filtreler: oyuncu/yönetmen seçimi, yapım türü, cinsiyet, tür, yıl aralığı, yapım başına en az oy, oyuncu başına en az yapım, rol önemi (jenerikteki ilk N isim). Filtreler adres çubuğuna yazılır, bağlantı paylaşılabilir.
