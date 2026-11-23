@@ -34,3 +34,11 @@ python export_static.py                  # docs/data.json üretir
 | Yapım sayısı / En iyi | Filtrelere uyan yapım sayısı ve en yüksek puanlı yapım |
 
 Filtreler: oyuncu/yönetmen seçimi, yapım türü, cinsiyet, tür, yıl aralığı, yapım başına en az oy, oyuncu başına en az yapım, rol önemi (jenerikteki ilk N isim). Filtreler adres çubuğuna yazılır, bağlantı paylaşılabilir.
+
+## Ödüller sekmesi
+
+Oscar, BAFTA, Altın Küre, Cannes, Venedik, Berlin ve Sundance kazananları [Wikidata](https://www.wikidata.org/) (CC0) üzerinden alınır; ödüle, kategoriye, yıla göre filtrelenebilir, ödül listesi ya da film bazında görüntülenebilir. Puan ve oy sayısı IMDb verisinden eşleştirilir. Wikidata'daki kayıtlar bazı yıl ve kategorilerde eksik olabilir.
+
+```powershell
+python fetch_awards.py   # docs/awards.json üretir (varsayılan uç nokta: QLever)
+```

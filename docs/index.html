@@ -32,6 +32,15 @@ header { max-width: 1240px; margin: 0 auto; padding: 28px 16px 8px; display: fle
 h1 { font-family: Fraunces, Georgia, serif; font-size: 34px; margin: 0; letter-spacing: -.01em; }
 h1 span:last-child { color: var(--accent); }
 .director-mode .cast-only { display: none !important; }
+.tabs { max-width: 1240px; margin: 0 auto; padding: 8px 16px 0; display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; font-weight: 600; padding: 8px 14px; cursor: pointer; margin-bottom: -1px; }
+.tab[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); }
+.fest { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 4px; background: var(--accent-soft); margin-right: 6px; white-space: nowrap; }
+.awards td { text-align: left; white-space: normal; vertical-align: top; }
+.awards td.num, .awards th.num { text-align: right; white-space: nowrap; }
+.awards th { text-align: left; cursor: default; }
+.awlist { display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.muted { color: var(--muted); }
 .sub { color: var(--muted); margin: 4px 0 0; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 270px 1fr; gap: 20px; align-items: start; }
 @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } }
@@ -101,13 +110,17 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 <body>
 <header>
   <div>
-    <h1><span id="roleTitle">Oyuncu</span> <span>Sıralaması</span></h1>
+    <h1><span id="roleTitle">Oyuncu</span> <span id="titleTail">Sıralaması</span></h1>
     <p class="sub" id="metaLine">IMDb verileri yükleniyor…</p>
   </div>
   <button class="ghost" id="themeBtn" type="button">Tema</button>
 </header>
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" data-tab="rank" aria-selected="true">Sıralama</button>
+  <button class="tab" role="tab" data-tab="awards" aria-selected="false">Ödüller</button>
+</nav>
 
-<div class="wrap">
+<div class="wrap" id="rankView">
   <aside class="card" aria-label="Filtreler">
     <div class="field">
       <span class="lbl">Sıralanacak kişiler</span>
@@ -198,8 +211,57 @@ button.sm { padding: 6px 10px; font-size: 13px; }
   </main>
 </div>
 
+<div class="wrap" id="awardsView" hidden>
+  <aside class="card" aria-label="Ödül filtreleri">
+    <div class="field">
+      <span class="lbl">Ödül</span>
+      <div class="chips" id="afest"></div>
+    </div>
+    <div class="field">
+      <label for="acat">Kategori</label>
+      <select id="acat"><option value="">Tüm kategoriler</option></select>
+    </div>
+    <div class="field">
+      <span class="lbl">Ödül yılı</span>
+      <div class="row2">
+        <input type="number" id="ay0" aria-label="Başlangıç yılı" placeholder="–">
+        <input type="number" id="ay1" aria-label="Bitiş yılı" placeholder="–">
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl">Görünüm</span>
+      <div class="chips" id="aview">
+        <button class="chip" data-v="list">Ödül listesi</button>
+        <button class="chip" data-v="film">Film bazında</button>
+      </div>
+    </div>
+    <button class="ghost" id="aReset" type="button">Filtreleri sıfırla</button>
+    <p class="hint" style="margin-top:16px">Ödül verisi Wikidata'dan alınır ve bazı yıllar ya da kategoriler eksik olabilir. Puan ve oy sayısı IMDb verisinden gelir.</p>
+  </aside>
+
+  <main class="card">
+    <div class="toolbar">
+      <input type="text" id="aq" placeholder="Film ya da kişi ara…" aria-label="Film ya da kişi ara">
+      <select id="asort" aria-label="Sıralama">
+        <option value="year">Yeniden eskiye</option>
+        <option value="yearAsc">Eskiden yeniye</option>
+        <option value="category">Kategori</option>
+        <option value="rating">IMDb puanı</option>
+        <option value="votes">Oy sayısı</option>
+        <option value="count">Ödül sayısı</option>
+      </select>
+    </div>
+    <div class="status" id="astatus">…</div>
+    <div class="tablewrap">
+      <table class="awards"><thead id="ahead"></thead><tbody id="abody"></tbody></table>
+    </div>
+    <div id="aempty" class="empty" hidden></div>
+    <button class="btn more" id="amore" hidden>Daha fazla göster</button>
+  </main>
+</div>
+
 <footer style="max-width:1240px;margin:0 auto;padding:8px 16px 32px;color:var(--muted);font-size:12px">
-  Veri: <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener">IMDb Non-Commercial Datasets</a>, kişisel ve ticari olmayan kullanım içindir. Bu site IMDb ile bağlantılı değildir.
+  Veri: <a href="https://developer.imdb.com/non-commercial-datasets/" target="_blank" rel="noopener">IMDb Non-Commercial Datasets</a>, kişisel ve ticari olmayan kullanım içindir. Ödüller: <a href="https://www.wikidata.org/" target="_blank" rel="noopener">Wikidata</a> (CC0). Bu site IMDb ile bağlantılı değildir.
 </footer>
 
 <dialog id="dlg">
@@ -243,7 +305,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 <script>
 const GENRES_TR = {Action:"Aksiyon",Adult:"Yetişkin",Adventure:"Macera",Animation:"Animasyon",Biography:"Biyografi",Comedy:"Komedi",Crime:"Suç",Documentary:"Belgesel",Drama:"Dram",Family:"Aile",Fantasy:"Fantastik","Film-Noir":"Kara film","Game-Show":"Yarışma",History:"Tarih",Horror:"Korku",Music:"Müzik",Musical:"Müzikal",Mystery:"Gizem",News:"Haber","Reality-TV":"Realite",Romance:"Romantik","Sci-Fi":"Bilim kurgu",Short:"Kısa",Sport:"Spor","Talk-Show":"Talk show",Thriller:"Gerilim",War:"Savaş",Western:"Western"};
 const TYPES_TR = {movie:"Film",tvMovie:"TV filmi",tvSeries:"Dizi",tvMiniSeries:"Mini dizi"};
-const DEFAULTS = {role:"cast", types:"movie", gender:"all", genre:"", yearFrom:"", yearTo:"", minVotes:"10000", minTitles:"10", maxOrder:"10", prior:"10", sort:"score", q:""};
+const DEFAULTS = {tab:"rank", af:"", ac:"", ay0:"", ay1:"", aq:"", av:"list", as:"year", role:"cast", types:"movie", gender:"all", genre:"", yearFrom:"", yearTo:"", minVotes:"10000", minTitles:"10", maxOrder:"10", prior:"10", sort:"score", q:""};
 const $ = id => document.getElementById(id);
 const nf = new Intl.NumberFormat("tr-TR");
 const f2 = v => v == null ? "–" : v.toLocaleString("tr-TR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -273,14 +335,20 @@ function writeHash(){
   history.replaceState(null, "", "#" + p.toString());
 }
 const ROLE_WORD = {cast: "Oyuncu", director: "Yönetmen"};
+const RANK_KEYS = ["role","types","gender","genre","yearFrom","yearTo","minVotes","minTitles","maxOrder","prior","sort"];
 function syncForm(){
   const role = state.role === "director" ? "director" : "cast";
   document.body.classList.toggle("director-mode", role === "director");
   document.querySelectorAll("#role .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === role));
   document.querySelectorAll(".roleWord").forEach(el => el.textContent = ROLE_WORD[role]);
-  $("roleTitle").textContent = ROLE_WORD[role];
+  const awards = state.tab === "awards";
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === (awards ? "awards" : "rank")));
+  $("rankView").hidden = awards; $("awardsView").hidden = !awards;
+  $("roleTitle").textContent = awards ? "Ödüllü" : ROLE_WORD[role];
+  $("titleTail").textContent = awards ? "Filmler" : "Sıralaması";
   $("q").placeholder = ROLE_WORD[role] + " ara…";
-  document.title = ROLE_WORD[role] + " Sıralaması";
+  document.title = awards ? "Ödüllü Filmler" : ROLE_WORD[role] + " Sıralaması";
+  syncAwardsForm();
   const types = state.types.split(",");
   document.querySelectorAll("#types .chip").forEach(b => b.setAttribute("aria-pressed", types.includes(b.dataset.v)));
   document.querySelectorAll("#gender .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.gender));
@@ -347,7 +415,7 @@ let computed = null;
 function load(append = false){
   if (!DB) return;
   if (!append) offset = 0;
-  const key = JSON.stringify({...state, q: ""});
+  const key = JSON.stringify(pick(state, RANK_KEYS));
   if (key !== rankKey) { computed = compute(); rankKey = key; }
   const q = state.q.toLocaleLowerCase("tr");
   const list = q ? computed.out.filter(r => r.name.toLocaleLowerCase("tr").includes(q)) : computed.out;
@@ -473,7 +541,7 @@ $("tbody").addEventListener("click", e => { const tr = e.target.closest("tr[data
 let timer;
 function change(k, v, debounce = 0){
   state[k] = v; writeHash(); syncForm();
-  clearTimeout(timer); timer = setTimeout(() => load(), debounce);
+  clearTimeout(timer); timer = setTimeout(route, debounce);
 }
 $("types").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
@@ -488,8 +556,141 @@ for (const k of ["genre","maxOrder","sort"]) $(k).addEventListener("change", e =
 for (const k of ["yearFrom","yearTo","minVotes","minTitles","prior","q"]) $(k).addEventListener("input", e => change(k, e.target.value.trim(), 350));
 document.querySelectorAll("th[data-sort]").forEach(th => th.onclick = () => change("sort", th.dataset.sort));
 $("moreBtn").onclick = () => load(true);
-$("resetBtn").onclick = () => { state = {...DEFAULTS}; writeHash(); syncForm(); load(); };
-window.addEventListener("hashchange", () => { readHash(); syncForm(); load(); });
+$("resetBtn").onclick = () => { for (const k of RANK_KEYS.concat("q")) state[k] = DEFAULTS[k]; writeHash(); syncForm(); load(); };
+window.addEventListener("hashchange", () => { readHash(); syncForm(); route(); });
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => change("tab", b.dataset.tab));
+function route(){ if (state.tab === "awards") renderAwards(); else load(); }
+
+// ----- ödüller
+let AW = null, awOffset = 0, awRows = null, awKey = "", titleIdx = null;
+const AW_KEYS = ["af","ac","ay0","ay1","aq","av","as"];
+const AW_PAGE = 50;
+async function ensureAwards(){
+  if (AW) return;
+  $("astatus").textContent = "Ödül verisi yükleniyor…";
+  const r = await fetch("awards.json");
+  if (!r.ok) throw new Error("awards.json yüklenemedi (" + r.status + ")");
+  AW = await r.json();
+  AW.festName = Object.fromEntries(AW.festivals.map(f => [f.id, f.name]));
+  // Kaydı olmayan ödülleri gösterme
+  const used = new Set(AW.categories.map(c => c.f));
+  AW.festivals = AW.festivals.filter(f => used.has(f.id));
+  $("afest").innerHTML = `<button class="chip" data-v="">Tümü</button>` +
+    AW.festivals.map(f => `<button class="chip" data-v="${esc(f.id)}">${esc(f.name)}</button>`).join("");
+  const ys = AW.wins.map(w => w[3]).filter(Boolean);
+  $("ay0").placeholder = Math.min(...ys); $("ay1").placeholder = Math.max(...ys);
+  syncAwardsForm();
+}
+let acatFest = null;
+function syncAwardsForm(){
+  document.querySelectorAll("#aview .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.av));
+  for (const k of ["ay0","ay1","aq"]) $(k).value = state[k];
+  $("asort").value = state.as;
+  if (!AW) return;
+  document.querySelectorAll("#afest .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.af));
+  if (acatFest !== state.af) {
+    acatFest = state.af;
+    const groups = AW.festivals.filter(f => !state.af || f.id === state.af).map(f => {
+      const opts = AW.categories.map((c, i) => [c, i]).filter(([c]) => c.f === f.id)
+        .sort((x, y) => x[0].name.localeCompare(y[0].name))
+        .map(([c, i]) => `<option value="${i}">${esc(c.name)}</option>`).join("");
+      return state.af ? opts : `<optgroup label="${esc(f.name)}">${opts}</optgroup>`;
+    }).join("");
+    $("acat").innerHTML = `<option value="">Tüm kategoriler</option>` + groups;
+  }
+  $("acat").value = state.ac;
+}
+function filmInfo(tt){
+  const i = titleIdx.get(tt);
+  if (i === undefined) return {};
+  const T = DB.titles;
+  return {title: T.ti[i], year: T.y[i], type: DB.types[T.ty[i]], rating: T.r[i] / 10, votes: T.v[i]};
+}
+function computeAwards(){
+  if (!titleIdx) titleIdx = new Map(DB.titles.id.map((id, i) => [id, i]));
+  const y0 = num(state.ay0, 0), y1 = num(state.ay1, 9999), ac = state.ac === "" ? -1 : +state.ac;
+  const q = state.aq.toLocaleLowerCase("tr");
+  const rows = [];
+  for (const [c, tt, wlabel, wyear, people] of AW.wins) {
+    const cat = AW.categories[c];
+    if (state.af && cat.f !== state.af) continue;
+    if (ac >= 0 && c !== ac) continue;
+    const info = filmInfo(tt);
+    const year = wyear || info.year || 0;
+    if (year < y0 || year > y1) continue;
+    const title = info.title || wlabel || imdbId("tt", tt);
+    if (q && !title.toLocaleLowerCase("tr").includes(q) && !wlabel.toLocaleLowerCase("tr").includes(q)
+        && !people.some(([n]) => n.toLocaleLowerCase("tr").includes(q))) continue;
+    rows.push({c, cat: cat.name, fest: cat.f, tt, title, year, filmYear: info.year || 0, type: info.type,
+               people, rating: info.rating ?? null, votes: info.votes ?? null});
+  }
+  if (state.av === "film") {
+    const by = new Map();
+    for (const r of rows) {
+      let g = by.get(r.tt);
+      if (!g) by.set(r.tt, g = {...r, year: r.filmYear || r.year, filmYear: 0, awards: [], count: 0, keys: new Set()});
+      const k = r.c;
+      if (!g.keys.has(k)) { g.keys.add(k); g.awards.push(r); g.count++; }
+    }
+    return [...by.values()];
+  }
+  return rows;
+}
+function sortAwards(rows){
+  const byYear = (x, y) => y.year - x.year;
+  const cmp = {
+    year: byYear,
+    yearAsc: (x, y) => x.year - y.year,
+    category: (x, y) => (AW.festName[x.fest] || "").localeCompare(AW.festName[y.fest] || "") || x.cat.localeCompare(y.cat) || byYear(x, y),
+    rating: (x, y) => (y.rating ?? -1) - (x.rating ?? -1),
+    votes: (x, y) => (y.votes ?? -1) - (x.votes ?? -1),
+    count: (x, y) => (y.count || 1) - (x.count || 1) || byYear(x, y),
+  }[state.as] || byYear;
+  return rows.sort((x, y) => cmp(x, y) || x.title.localeCompare(y.title));
+}
+const filmCell = r => `<a href="https://www.imdb.com/title/${imdbId("tt", r.tt)}/" target="_blank" rel="noopener">${esc(r.title)}</a>`
+  + (r.type && r.type !== "movie" ? `<span class="tag">${TYPES_TR[r.type] || r.type}</span>` : "")
+  + (r.filmYear && r.filmYear !== r.year ? ` <span class="muted">(${r.filmYear})</span>` : "");
+const personCell = r => !r.people.length ? `<span class="muted">–</span>` : r.people.map(([n, id]) => id
+  ? `<a href="https://www.imdb.com/name/${imdbId("nm", id)}/" target="_blank" rel="noopener">${esc(n)}</a>` : esc(n)).join(", ");
+const awardCell = r => `<span class="fest">${esc(AW.festName[r.fest])}</span>${esc(r.cat)}`;
+const votesCell = v => v == null ? "–" : nf.format(v);
+async function renderAwards(append = false){
+  if (!DB) return;
+  try { await ensureAwards(); } catch (e) { $("astatus").innerHTML = `<span class="err">${esc(e.message)}</span>`; return; }
+  const key = JSON.stringify(pick(state, AW_KEYS));
+  if (key !== awKey) { awRows = sortAwards(computeAwards()); awKey = key; }
+  if (!append) awOffset = 0;
+  const film = state.av === "film";
+  $("ahead").innerHTML = film
+    ? `<tr><th>Film</th><th class="num">Yıl</th><th class="num">Ödül</th><th>Kazandığı ödüller</th><th class="num">Puan</th><th class="num">Oy</th></tr>`
+    : `<tr><th class="num">Yıl</th><th>Ödül ve kategori</th><th>Film</th><th>Kazanan</th><th class="num">Puan</th><th class="num">Oy</th></tr>`;
+  const page = awRows.slice(awOffset, awOffset + AW_PAGE);
+  const html = page.map(r => film ? `<tr>
+      <td>${filmCell(r)}</td><td class="num">${r.year || "–"}</td><td class="num"><b>${r.count}</b></td>
+      <td><div class="awlist">${r.awards.map(a => `<span>${awardCell(a)}${a.people.length ? ` <span class="muted">· ${esc(a.people.map(x => x[0]).join(", "))}</span>` : ""}</span>`).join("")}</div></td>
+      <td class="num">${f2(r.rating)}</td><td class="num">${votesCell(r.votes)}</td></tr>`
+    : `<tr>
+      <td class="num">${r.year || "–"}</td><td>${awardCell(r)}</td><td>${filmCell(r)}</td><td>${personCell(r)}</td>
+      <td class="num">${f2(r.rating)}</td><td class="num">${votesCell(r.votes)}</td></tr>`).join("");
+  $("abody").innerHTML = append ? $("abody").innerHTML + html : html;
+  awOffset += page.length;
+  $("amore").hidden = awOffset >= awRows.length;
+  $("astatus").textContent = `${nf.format(awRows.length)} ${film ? "film" : "ödül"} · kaynak: ${AW.source}, ${AW.fetchedAt}`;
+  $("aempty").hidden = awRows.length > 0;
+  $("aempty").textContent = "Bu filtrelerle ödül bulunamadı.";
+}
+$("afest").addEventListener("click", e => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.ac = ""; change("af", b.dataset.v);
+});
+$("aview").addEventListener("click", e => { const b = e.target.closest(".chip"); if (b) change("av", b.dataset.v); });
+$("acat").addEventListener("change", e => change("ac", e.target.value));
+$("asort").addEventListener("change", e => change("as", e.target.value));
+for (const k of ["ay0","ay1","aq"]) $(k).addEventListener("input", e => change(k, e.target.value.trim(), 350));
+$("amore").onclick = () => renderAwards(true);
+$("aReset").onclick = () => { for (const k of AW_KEYS) state[k] = DEFAULTS[k]; writeHash(); syncForm(); renderAwards(); };
+
 
 // ----- başlat
 (async () => {
@@ -510,7 +711,7 @@ window.addEventListener("hashchange", () => { readHash(); syncForm(); load(); })
     $("minTitles").min = DB.meta.minCredits;
     $("metaLine").textContent = `${nf.format(DB.titles.id.length)} yapım · ${nf.format(DB.actors.id.length)} kişi · IMDb verisi ${DB.meta.imported_at}`;
     $("minVotesHint").textContent = `Veride en az ${nf.format(+DB.meta.min_votes)} oy alan yapımlar var.`;
-    load();
+    route();
   } catch (e) {
     $("metaLine").innerHTML = `<span class="err">${esc(e.message)}</span>`;
     $("status").textContent = "";
