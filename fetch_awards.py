@@ -17,6 +17,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import sundance_wiki
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "docs", "awards.json")
 # Wikidata'nın kendi servisi (query.wikidata.org) yoğunlukta çok sıkı hız sınırı uyguluyor;
@@ -122,30 +124,30 @@ def year_of(b, key):
 
 
 def fetch_wins(award_ids):
+    """Kazananları üç biçimden toplar: filmin "ödül aldı" (P166) kaydı, kişinin bir film için
+    aldığı ödül (P166 + P1686) ve ödül kaydının kendisindeki "kazanan" (P1346) listesi."""
     rows = []
     ids = sorted(award_ids)
     for i in range(0, len(ids), BATCH):
         values = " ".join(f"wd:{a}" for a in ids[i : i + BATCH])
-        film_q = f"""SELECT ?award ?imdb ?fl ?date WHERE {{
-            VALUES ?award {{ {values} }}
-            ?f p:P166 ?st . ?st ps:P166 ?award .
-            ?f wdt:P345 ?imdb FILTER(STRSTARTS(?imdb, "tt"))
+        film_tail = """?f wdt:P345 ?imdb FILTER(STRSTARTS(?imdb, "tt"))
             OPTIONAL {{ ?st pq:P585 ?date }}
-            OPTIONAL {{ ?f rdfs:label ?fl FILTER(LANG(?fl) = "en") }} }}"""
-        person_q = f"""SELECT ?award ?imdb ?fl ?date ?pl ?pimdb WHERE {{
-            VALUES ?award {{ {values} }}
-            ?p p:P166 ?st . ?st ps:P166 ?award ; pq:P1686 ?f .
-            ?f wdt:P345 ?imdb FILTER(STRSTARTS(?imdb, "tt"))
-            OPTIONAL {{ ?st pq:P585 ?date }}
+            OPTIONAL {{ ?f rdfs:label ?fl FILTER(LANG(?fl) = "en") }}"""
+        person_tail = film_tail + """
             OPTIONAL {{ ?p wdt:P345 ?pimdb }}
-            OPTIONAL {{ ?f rdfs:label ?fl FILTER(LANG(?fl) = "en") }}
-            OPTIONAL {{ ?p rdfs:label ?pl FILTER(LANG(?pl) = "en") }} }}"""
-        for b in sparql(film_q):
-            rows.append((qid(b["award"]), b["imdb"]["value"], b.get("fl", {}).get("value"), year_of(b, "date"), None, None))
-        for b in sparql(person_q):
-            pimdb = b.get("pimdb", {}).get("value")
-            rows.append((qid(b["award"]), b["imdb"]["value"], b.get("fl", {}).get("value"), year_of(b, "date"),
-                         b.get("pl", {}).get("value"), pimdb if pimdb and pimdb.startswith("nm") else None))
+            OPTIONAL {{ ?p rdfs:label ?pl FILTER(LANG(?pl) = "en") }}"""
+        queries = [
+            ("?f p:P166 ?st . ?st ps:P166 ?award .", film_tail),
+            ("?p p:P166 ?st . ?st ps:P166 ?award ; pq:P1686 ?f .", person_tail),
+            ("?award p:P1346 ?st . ?st ps:P1346 ?f .", film_tail),
+            ("?award p:P1346 ?st . ?st ps:P1346 ?p ; pq:P1686 ?f .", person_tail),
+        ]
+        for head, tail in queries:
+            q = f"SELECT * WHERE {{ VALUES ?award {{ {values} }} {head} {tail.format()} }}"
+            for b in sparql(q):
+                pimdb = b.get("pimdb", {}).get("value")
+                rows.append((qid(b["award"]), b["imdb"]["value"], b.get("fl", {}).get("value"), year_of(b, "date"),
+                             b.get("pl", {}).get("value"), pimdb if pimdb and pimdb.startswith("nm") else None))
         print(f"  {min(i + BATCH, len(ids))}/{len(ids)} ödül sorgulandı", flush=True)
     return rows
 
@@ -154,39 +156,56 @@ def main():
     global ENDPOINT
     ap = argparse.ArgumentParser()
     ap.add_argument("--endpoint", default=ENDPOINT, help="SPARQL uç noktası")
-    ENDPOINT = ap.parse_args().endpoint
+    ap.add_argument("--no-wikipedia", action="store_true", help="Sundance için Wikipedia'yı kullanma")
+    a = ap.parse_args()
+    ENDPOINT = a.endpoint
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except AttributeError:
         pass
     print("Ödül türleri toplanıyor...", flush=True)
     awards = classify(candidate_awards())
+    # Sundance kategorileri, Wikipedia ile birleşebilmesi için tek bir adlandırmaya indirgenir.
+    awards = {q: (f, sundance_wiki.canon(c) or c) if f == "sundance" else (f, c) for q, (f, c) in awards.items()}
     print(f"  {len(awards)} ödül kategorisi bulundu", flush=True)
 
-    print("Kazananlar çekiliyor...", flush=True)
-    rows = fetch_wins(awards)
+    print("Kazananlar çekiliyor (Wikidata)...", flush=True)
+    rows = [(awards[aw], imdb, film, year, person, pimdb, False) for aw, imdb, film, year, person, pimdb in fetch_wins(awards)]
 
-    # Aynı ödül + film tek kayıt; birden çok kazanan kişi (ör. yapımcılar) birleştirilir.
+    if not a.no_wikipedia:
+        print("Sundance kazananları çekiliyor (Wikipedia)...", flush=True)
+        for r in sundance_wiki.sundance_wins(sparql, log=lambda m: print(m, flush=True)):
+            people = r["people"] or [None]
+            for person in people:
+                rows.append((("sundance", r["cat"]), r["imdb"], r["film"], r["year"], person, None, True))
+
+    # Aynı kategori + film tek kayıt; birden çok kazanan kişi (ör. yapımcılar) birleştirilir.
     merged = {}
-    for award, imdb, film, year, person, pimdb in rows:
-        m = merged.setdefault((award, imdb), {"film": film, "year": year, "people": {}})
-        if year and (not m["year"] or year < m["year"]):
+    for cat, imdb, film, year, person, pimdb, from_wiki in rows:
+        key = (cat, imdb or "title:" + sundance_wiki.norm(film or ""))
+        m = merged.setdefault(key, {"imdb": imdb, "film": film, "year": year, "wiki": from_wiki, "people": {}})
+        if from_wiki and not m["wiki"]:  # festival yılı Wikipedia'da daha güvenilir
+            m["year"], m["wiki"] = year or m["year"], True
+        elif year and not m["wiki"] and (not m["year"] or year < m["year"]):
             m["year"] = year
         if person:
-            m["people"].setdefault(person, int(pimdb[2:]) if pimdb else 0)
-    final = [(a, i, m["film"], m["year"], sorted(m["people"].items())) for (a, i), m in merged.items()]
+            pid = int(pimdb[2:]) if pimdb else 0
+            if pid or person not in m["people"]:
+                m["people"][person] = pid
+    # Aynı kişi Wikidata'da kimlikli, Wikipedia'da kimliksiz gelebilir: tekilleştir
+    final = [(cat, m["imdb"], m["film"], m["year"], sorted(m["people"].items())) for (cat, _), m in merged.items()]
 
-    cats = sorted({awards[a] for a, *_ in final})
+    cats = sorted({c for c, *_ in final})
     cat_index = {c: n for n, c in enumerate(cats)}
     data = {
-        "source": "Wikidata (CC0)",
+        "source": "Wikidata (CC0), Sundance için ayrıca Wikipedia (CC BY-SA)",
         "fetchedAt": time.strftime("%Y-%m-%d"),
         "festivals": [{"id": k, "name": n} for k, n, *_ in FESTIVALS],
         "categories": [{"f": f, "name": c} for f, c in cats],
         # [kategori indeksi, imdb no, film adı, yıl, [[kişi, kişi imdb no], ...]]
         "wins": sorted(
-            ([cat_index[awards[a]], int(i[2:]), f or "", y or 0, [list(x) for x in people]]
-             for a, i, f, y, people in final),
+            ([cat_index[c], int(i[2:]) if i else 0, f or "", y or 0, [list(x) for x in people]]
+             for c, i, f, y, people in final),
             key=lambda r: (-r[3], r[0]),
         ),
     }

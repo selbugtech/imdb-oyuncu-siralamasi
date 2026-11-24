@@ -105,6 +105,60 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 .films td.num { text-align: right; white-space: nowrap; }
 .tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--accent-soft); margin-left: 4px; }
 .err { color: #c0392b; }
+
+/* ---------- mobil ---------- */
+.filter-toggle { display: none; }
+@media (max-width: 860px) {
+  .filter-toggle { display: inline-flex; align-items: center; gap: 6px; }
+  .filter-toggle b { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 7px; font-size: 12px; }
+  .wrap > aside.card:not(.open) { display: none; }
+  .wrap { gap: 12px; }
+}
+@media (max-width: 640px) {
+  header { padding: 18px 16px 4px; align-items: flex-start; flex-wrap: nowrap; }
+  #themeBtn { padding: 5px 10px; font-size: 13px; flex: none; }
+  h1 { font-size: 25px; }
+  .sub { font-size: 12px; }
+  .tabs { padding-top: 4px; }
+  .tab { flex: 1; padding: 10px 8px; }
+  .wrap { padding: 12px 10px; }
+  aside.card { padding: 14px; }
+  .chip { padding: 7px 12px; }
+  .toolbar { padding: 10px; gap: 8px; }
+  .toolbar input { flex: 1 1 100%; order: -1; }
+  .toolbar select { flex: 1; }
+  .status { padding: 8px 12px; }
+  input[type=text], input[type=number], select { font-size: 16px; } /* iOS yakınlaştırmasını önler */
+
+  /* tablolar -> kartlar */
+  table.cards, table.cards tbody { display: block; }
+  table.cards thead { display: none; }
+  table.cards tr { display: grid; gap: 6px 12px; padding: 12px; border-bottom: 1px solid var(--line); }
+  table.cards td { display: block; padding: 0; border: 0; text-align: left; white-space: normal; }
+  table.cards td[data-l]::before { content: attr(data-l); display: block; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+
+  #rankTable tr { grid-template-columns: 34px repeat(3, 1fr); }
+  #rankTable td.rank { grid-row: span 3; width: auto; padding-top: 2px; }
+  #rankTable td.name { grid-column: 2 / -1; font-size: 15px; }
+  #rankTable .bar i { display: none; }
+
+  .awards.cards tr { grid-template-columns: 1fr auto auto; }
+  .awards.cards td.c-wide { grid-column: 1 / -1; }
+  .awards.cards td.c-film { font-weight: 600; font-size: 15px; }
+  .awards.cards td.c-year { color: var(--muted); text-align: left; grid-column: 1 / -1; font-size: 12px; }
+
+  dialog { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border-radius: 0; }
+  .dlg-head { padding: 14px 14px 10px; }
+  .dlg-head h2 { font-size: 21px; }
+  .dfilters { padding: 10px 14px 2px; }
+  .dactions { justify-content: stretch; }
+  .dactions .hint { flex: 1 1 100%; }
+  .dactions button { flex: 1; }
+  .stats { padding: 10px 14px; }
+  .stat b { font-size: 17px; }
+  .films th, .films td { padding: 8px 5px; font-size: 13px; }
+  footer { padding: 8px 12px 24px !important; }
+}
 </style>
 </head>
 <body>
@@ -121,7 +175,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 </nav>
 
 <div class="wrap" id="rankView">
-  <aside class="card" aria-label="Filtreler">
+  <aside class="card" id="rankAside" aria-label="Filtreler">
     <div class="field">
       <span class="lbl">Sıralanacak kişiler</span>
       <div class="chips" id="role">
@@ -185,6 +239,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 
   <main class="card">
     <div class="toolbar">
+      <button class="ghost filter-toggle" type="button" data-aside="rankAside" aria-expanded="false">Filtreler <b hidden></b></button>
       <input type="text" id="q" placeholder="Oyuncu ara…" aria-label="Kişi ara">
       <select id="sort" aria-label="Sıralama ölçütü">
         <option value="score">Bayes puanı</option>
@@ -197,7 +252,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
     </div>
     <div class="status" id="status">…</div>
     <div class="tablewrap">
-      <table>
+      <table class="cards" id="rankTable">
         <thead><tr>
           <th>#</th><th class="roleWord">Oyuncu</th>
           <th data-sort="score">Bayes</th><th data-sort="wavg">Ağırlıklı</th><th data-sort="avg">Ort.</th>
@@ -212,7 +267,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 </div>
 
 <div class="wrap" id="awardsView" hidden>
-  <aside class="card" aria-label="Ödül filtreleri">
+  <aside class="card" id="awardsAside" aria-label="Ödül filtreleri">
     <div class="field">
       <span class="lbl">Ödül</span>
       <div class="chips" id="afest"></div>
@@ -241,6 +296,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
 
   <main class="card">
     <div class="toolbar">
+      <button class="ghost filter-toggle" type="button" data-aside="awardsAside" aria-expanded="false">Filtreler <b hidden></b></button>
       <input type="text" id="aq" placeholder="Film ya da kişi ara…" aria-label="Film ya da kişi ara">
       <select id="asort" aria-label="Sıralama">
         <option value="year">Yeniden eskiye</option>
@@ -253,7 +309,7 @@ button.sm { padding: 6px 10px; font-size: 13px; }
     </div>
     <div class="status" id="astatus">…</div>
     <div class="tablewrap">
-      <table class="awards"><thead id="ahead"></thead><tbody id="abody"></tbody></table>
+      <table class="awards cards"><thead id="ahead"></thead><tbody id="abody"></tbody></table>
     </div>
     <div id="aempty" class="empty" hidden></div>
     <button class="btn more" id="amore" hidden>Daha fazla göster</button>
@@ -354,6 +410,7 @@ function syncForm(){
   document.querySelectorAll("#gender .chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === state.gender));
   for (const k of ["genre","yearFrom","yearTo","minVotes","minTitles","maxOrder","prior","sort","q"]) $(k).value = state[k];
   document.querySelectorAll("th[data-sort]").forEach(th => th.classList.toggle("active", th.dataset.sort === state.sort));
+  updateFilterBadges();
 }
 
 // ----- veri (tamamen tarayıcıda hesaplanır)
@@ -432,8 +489,9 @@ function render(d, append){
     return `<tr data-a="${r.a}">
       <td class="rank">${r.rank}</td>
       <td class="name">${esc(r.name || r.id)}<small>${[life, span && "Kariyer " + span].filter(Boolean).join(" · ")}</small></td>
-      <td><span class="bar"><i style="width:${w}px"></i>${f2(r.score)}</span></td>
-      <td>${f2(r.wavg)}</td><td>${f2(r.avg)}</td><td>${r.count}</td><td>${nf.format(r.votes)}</td><td>${f2(r.best)}</td>
+      <td data-l="Bayes"><span class="bar"><i style="width:${w}px"></i>${f2(r.score)}</span></td>
+      <td data-l="Ağırlıklı">${f2(r.wavg)}</td><td data-l="Ortalama">${f2(r.avg)}</td><td data-l="Yapım">${r.count}</td>
+      <td data-l="Toplam oy">${nf.format(r.votes)}</td><td data-l="En iyi">${f2(r.best)}</td>
     </tr>`;
   }).join("");
   $("tbody").innerHTML = append ? $("tbody").innerHTML + rows : rows;
@@ -559,6 +617,20 @@ $("moreBtn").onclick = () => load(true);
 $("resetBtn").onclick = () => { for (const k of RANK_KEYS.concat("q")) state[k] = DEFAULTS[k]; writeHash(); syncForm(); load(); };
 window.addEventListener("hashchange", () => { readHash(); syncForm(); route(); });
 document.querySelectorAll(".tab").forEach(b => b.onclick = () => change("tab", b.dataset.tab));
+document.querySelectorAll(".filter-toggle").forEach(btn => btn.onclick = () => {
+  const aside = $(btn.dataset.aside), open = !aside.classList.contains("open");
+  aside.classList.toggle("open", open); btn.setAttribute("aria-expanded", open);
+  if (open) aside.scrollIntoView({block: "nearest", behavior: "smooth"});
+});
+function updateFilterBadges(){
+  const count = keys => keys.filter(k => String(state[k]) !== String(DEFAULTS[k])).length;
+  const n = {rankAside: count(["role","types","gender","genre","yearFrom","yearTo","minVotes","minTitles","maxOrder","prior"]),
+             awardsAside: count(["af","ac","ay0","ay1","av"])};
+  document.querySelectorAll(".filter-toggle").forEach(btn => {
+    const b = btn.querySelector("b"), v = n[btn.dataset.aside];
+    b.hidden = !v; b.textContent = v;
+  });
+}
 function route(){ if (state.tab === "awards") renderAwards(); else load(); }
 
 // ----- ödüller
@@ -627,8 +699,9 @@ function computeAwards(){
   if (state.av === "film") {
     const by = new Map();
     for (const r of rows) {
-      let g = by.get(r.tt);
-      if (!g) by.set(r.tt, g = {...r, year: r.filmYear || r.year, filmYear: 0, awards: [], count: 0, keys: new Set()});
+      const fk = r.tt || "t:" + r.title;
+      let g = by.get(fk);
+      if (!g) by.set(fk, g = {...r, year: r.filmYear || r.year, filmYear: 0, awards: [], count: 0, keys: new Set()});
       const k = r.c;
       if (!g.keys.has(k)) { g.keys.add(k); g.awards.push(r); g.count++; }
     }
@@ -648,7 +721,7 @@ function sortAwards(rows){
   }[state.as] || byYear;
   return rows.sort((x, y) => cmp(x, y) || x.title.localeCompare(y.title));
 }
-const filmCell = r => `<a href="https://www.imdb.com/title/${imdbId("tt", r.tt)}/" target="_blank" rel="noopener">${esc(r.title)}</a>`
+const filmCell = r => (r.tt ? `<a href="https://www.imdb.com/title/${imdbId("tt", r.tt)}/" target="_blank" rel="noopener">${esc(r.title)}</a>` : esc(r.title))
   + (r.type && r.type !== "movie" ? `<span class="tag">${TYPES_TR[r.type] || r.type}</span>` : "")
   + (r.filmYear && r.filmYear !== r.year ? ` <span class="muted">(${r.filmYear})</span>` : "");
 const personCell = r => !r.people.length ? `<span class="muted">–</span>` : r.people.map(([n, id]) => id
@@ -667,12 +740,13 @@ async function renderAwards(append = false){
     : `<tr><th class="num">Yıl</th><th>Ödül ve kategori</th><th>Film</th><th>Kazanan</th><th class="num">Puan</th><th class="num">Oy</th></tr>`;
   const page = awRows.slice(awOffset, awOffset + AW_PAGE);
   const html = page.map(r => film ? `<tr>
-      <td>${filmCell(r)}</td><td class="num">${r.year || "–"}</td><td class="num"><b>${r.count}</b></td>
-      <td><div class="awlist">${r.awards.map(a => `<span>${awardCell(a)}${a.people.length ? ` <span class="muted">· ${esc(a.people.map(x => x[0]).join(", "))}</span>` : ""}</span>`).join("")}</div></td>
-      <td class="num">${f2(r.rating)}</td><td class="num">${votesCell(r.votes)}</td></tr>`
+      <td class="c-film c-wide">${filmCell(r)}</td><td class="num" data-l="Yıl">${r.year || "–"}</td><td class="num" data-l="Ödül"><b>${r.count}</b></td>
+      <td class="c-wide"><div class="awlist">${r.awards.map(a => `<span>${awardCell(a)}${a.people.length ? ` <span class="muted">· ${esc(a.people.map(x => x[0]).join(", "))}</span>` : ""}</span>`).join("")}</div></td>
+      <td class="num" data-l="Puan">${f2(r.rating)}</td><td class="num" data-l="Oy">${votesCell(r.votes)}</td></tr>`
     : `<tr>
-      <td class="num">${r.year || "–"}</td><td>${awardCell(r)}</td><td>${filmCell(r)}</td><td>${personCell(r)}</td>
-      <td class="num">${f2(r.rating)}</td><td class="num">${votesCell(r.votes)}</td></tr>`).join("");
+      <td class="num c-year">${r.year || "–"}</td><td class="c-wide">${awardCell(r)}</td><td class="c-film c-wide">${filmCell(r)}</td>
+      <td class="c-wide">${personCell(r)}</td>
+      <td class="num" data-l="Puan">${f2(r.rating)}</td><td class="num" data-l="Oy">${votesCell(r.votes)}</td></tr>`).join("");
   $("abody").innerHTML = append ? $("abody").innerHTML + html : html;
   awOffset += page.length;
   $("amore").hidden = awOffset >= awRows.length;

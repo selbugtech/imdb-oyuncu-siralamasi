@@ -37,7 +37,7 @@ Filtreler: oyuncu/yönetmen seçimi, yapım türü, cinsiyet, tür, yıl aralı�
 
 ## Ödüller sekmesi
 
-Oscar, BAFTA, Altın Küre, Cannes, Venedik, Berlin ve Sundance kazananları [Wikidata](https://www.wikidata.org/) (CC0) üzerinden alınır; ödüle, kategoriye, yıla göre filtrelenebilir, ödül listesi ya da film bazında görüntülenebilir. Puan ve oy sayısı IMDb verisinden eşleştirilir. Wikidata'daki kayıtlar bazı yıl ve kategorilerde eksik olabilir.
+Oscar, BAFTA, Altın Küre, Cannes, Venedik, Berlin ve Sundance kazananları [Wikidata](https://www.wikidata.org/) (CC0) üzerinden alınır. Wikidata'da Sundance kayıtları eksik olduğundan Sundance için ayrıca İngilizce Wikipedia'daki yıllık festival ve ödül sayfaları (CC BY-SA) işlenir (`sundance_wiki.py`). Kayıtlar ödüle, kategoriye, yıla göre filtrelenebilir, ödül listesi ya da film bazında görüntülenebilir. Puan ve oy sayısı IMDb verisinden eşleştirilir. Wikidata'daki kayıtlar bazı yıl ve kategorilerde eksik olabilir.
 
 ```powershell
 python fetch_awards.py   # docs/awards.json üretir (varsayılan uç nokta: QLever)
